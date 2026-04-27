@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx electron-rebuild *)",
+      "Bash(npx vite *)"
+    ]
+  }
+}
