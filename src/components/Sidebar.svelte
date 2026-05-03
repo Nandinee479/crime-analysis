@@ -39,7 +39,7 @@
     <div class="user-avatar">{user.name.charAt(0)}</div>
     <div class="user-details">
       <span class="user-name">{user.name}</span>
-      <span class="user-role">{admin ? 'Administrator' : 'Student'}</span>
+      <span class="user-role">{admin ? 'Administrator' : 'User'}</span>
     </div>
   </div>
 

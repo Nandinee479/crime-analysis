@@ -4,8 +4,7 @@
   "description": "Crime Analysis Desktop Application",
   "main": "electron/main.js",
   "scripts": {
-    
-    "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && SET NODE_ENV=development && electron .\"",
+    "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "build:renderer": "vite build",
     "build": "vite build && electron-builder",
     "postinstall": "electron-rebuild -f -w better-sqlite3"
@@ -17,6 +16,7 @@
     "@electron/rebuild": "^3.6.0",
     "@sveltejs/vite-plugin-svelte": "^3.1.0",
     "concurrently": "^8.2.2",
+    "cross-env": "^10.1.0",
     "electron": "^29.1.0",
     "electron-builder": "^24.13.3",
     "svelte": "^4.2.12",
@@ -26,15 +26,29 @@
   "build": {
     "appId": "com.crime-analysis.app",
     "productName": "Crime Analysis System",
-    "directories": { "output": "release" },
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "dist/**/*",
       "electron/**/*",
       "node_modules/**/*"
     ],
-    "asarUnpack": ["node_modules/better-sqlite3/**"],
-    "linux": { "target": ["AppImage", "deb"], "category": "Utility" },
-    "win": { "target": "nsis" },
-    "mac": { "target": "dmg" }
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**"
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    }
   }
 }

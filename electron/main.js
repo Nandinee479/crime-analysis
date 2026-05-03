@@ -16,6 +16,13 @@ function initDatabase() {
   db.pragma('foreign_keys = ON')
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS user_account (
+      ID INTEGER PRIMARY KEY AUTOINCREMENT,
+      Username TEXT NOT NULL UNIQUE,
+      Password TEXT NOT NULL,
+      Role TEXT NOT NULL DEFAULT 'user',
+      Full_Name TEXT
+    );
     CREATE TABLE IF NOT EXISTS crime_type (
       Type_ID INTEGER PRIMARY KEY AUTOINCREMENT,
       Type_Name TEXT NOT NULL,
@@ -58,6 +65,11 @@ function initDatabase() {
       FOREIGN KEY (Crime_ID) REFERENCES crime(Crime_ID)
     );
   `)
+
+  const adminExists = db.prepare('SELECT COUNT(*) AS n FROM user_account WHERE Username = ?').get('admin').n
+  if (!adminExists) {
+    db.prepare('INSERT INTO user_account (Username, Password, Role, Full_Name) VALUES (?, ?, ?, ?)').run('admin', 'admin123', 'admin', 'Administrator')
+  }
 }
 
 function createWindow() {
@@ -197,6 +209,24 @@ ipcMain.handle('victim:update', (_, d) =>
 ipcMain.handle('victim:delete', (_, id) =>
   db.prepare('DELETE FROM victim WHERE Victim_ID=?').run(id)
 )
+
+// ── Auth ───────────────────────────────────────────────────
+ipcMain.handle('auth:login', (_, { username, password }) => {
+  const user = db.prepare('SELECT ID, Username, Password, Role, Full_Name FROM user_account WHERE Username = ?').get(username)
+  if (!user || user.Password !== password) {
+    return { success: false, error: 'Invalid username or password' }
+  }
+  return { success: true, user: { id: user.ID, username: user.Username, role: user.Role, name: user.Full_Name || user.Username } }
+})
+
+ipcMain.handle('auth:register', (_, { username, password, fullName }) => {
+  const existing = db.prepare('SELECT COUNT(*) AS n FROM user_account WHERE Username = ?').get(username).n
+  if (existing > 0) {
+    return { success: false, error: 'Username already exists' }
+  }
+  db.prepare('INSERT INTO user_account (Username, Password, Role, Full_Name) VALUES (?, ?, ?, ?)').run(username, password, 'user', fullName)
+  return { success: true }
+})
 
 // ── Dashboard ──────────────────────────────────────────────
 ipcMain.handle('dashboard:getStats', () => ({

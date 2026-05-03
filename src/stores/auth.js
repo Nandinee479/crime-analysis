@@ -1,22 +1,19 @@
 import { writable } from 'svelte/store'
 
 export const authUser = writable(null)
-
 export const isAdmin = writable(false)
 
-const DEFAULT_USERS = {
-  admin: { username: 'admin', password: 'admin123', role: 'admin', name: 'Administrator' },
-  student: { username: 'student', password: 'student123', role: 'student', name: 'Student' }
+export async function login(username, password) {
+  const result = await window.api.auth.login({ username, password })
+  if (result.success) {
+    authUser.set(result.user)
+    isAdmin.set(result.user.role === 'admin')
+  }
+  return result
 }
 
-export function login(username, password) {
-  const user = DEFAULT_USERS[username]
-  if (user && user.password === password) {
-    authUser.set({ username: user.username, role: user.role, name: user.name })
-    isAdmin.set(user.role === 'admin')
-    return { success: true, user }
-  }
-  return { success: false, error: 'Invalid username or password' }
+export async function register(data) {
+  return await window.api.auth.register(data)
 }
 
 export function logout() {

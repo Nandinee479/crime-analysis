@@ -14,6 +14,10 @@ contextBridge.exposeInMainWorld('api', {
   crime:        crud('crime'),
   crimeSuspect: crud('crime-suspect'),
   victim:       crud('victim'),
+  auth: {
+    login:    (d) => ipcRenderer.invoke('auth:login', d),
+    register: (d) => ipcRenderer.invoke('auth:register', d)
+  },
   dashboard: {
     getStats: () => ipcRenderer.invoke('dashboard:getStats')
   }
