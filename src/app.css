@@ -212,7 +212,25 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .stat-card {
   background: var(--md-surface); border-radius: var(--radius);
   box-shadow: var(--md-elevation1); padding: 20px 22px;
-  display: flex; align-items: center; gap: 16px;
+  display: flex; align-items: center; gap: 16px; border: none;
+}
+.stat-card-interactive {
+  cursor: pointer; position: relative;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.stat-card-interactive:hover {
+  transform: translateY(-4px); box-shadow: var(--md-elevation3);
+}
+.stat-card-interactive:active {
+  transform: translateY(-1px); box-shadow: var(--md-elevation2);
+}
+.stat-card-arrow {
+  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  font-size: 20px; opacity: 0; color: var(--md-primary);
+  transition: opacity var(--transition), transform var(--transition);
+}
+.stat-card-interactive:hover .stat-card-arrow {
+  opacity: 1; transform: translateY(-50%) translateX(-4px);
 }
 .stat-icon {
   width: 52px; height: 52px; border-radius: 14px;

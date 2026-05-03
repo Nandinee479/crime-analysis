@@ -1,4 +1,5 @@
 <script>
+  import { currentPage } from '../stores/navigation.js'
   import { onMount } from 'svelte'
 
   let stats = null
@@ -19,10 +20,10 @@
   }
 
   const statCards = [
-    { key: 'totalCrimes',    label: 'Total Crimes',    icon: '🚔', bg: '#EDE7F6', color: '#4527A0' },
-    { key: 'totalSuspects',  label: 'Total Suspects',  icon: '🔍', bg: '#E3F2FD', color: '#01579B' },
-    { key: 'totalVictims',   label: 'Total Victims',   icon: '👤', bg: '#FCE4EC', color: '#880E4F' },
-    { key: 'totalLocations', label: 'Crime Locations', icon: '📍', bg: '#E8F5E9', color: '#1B5E20' },
+    { key: 'totalCrimes',    label: 'Total Crimes',    icon: '🚔', bg: '#EDE7F6', color: '#4527A0', page: 'crime' },
+    { key: 'totalSuspects',  label: 'Total Suspects',  icon: '🔍', bg: '#E3F2FD', color: '#01579B', page: 'suspect' },
+    { key: 'totalVictims',   label: 'Total Victims',   icon: '👤', bg: '#FCE4EC', color: '#880E4F', page: 'victim' },
+    { key: 'totalLocations', label: 'Crime Locations', icon: '📍', bg: '#E8F5E9', color: '#1B5E20', page: 'location' },
   ]
 
   function maxCount(arr) {
@@ -47,13 +48,14 @@
     <!-- Stat cards -->
     <div class="stats-grid">
       {#each statCards as c}
-        <div class="stat-card">
+        <button class="stat-card stat-card-interactive" on:click={() => currentPage.set(c.page)} type="button">
           <div class="stat-icon" style="background:{c.bg}; color:{c.color};">{c.icon}</div>
           <div>
             <div class="stat-value" style="color:{c.color};">{stats[c.key]}</div>
             <div class="stat-label">{c.label}</div>
           </div>
-        </div>
+          <div class="stat-card-arrow">→</div>
+        </button>
       {/each}
     </div>
 
