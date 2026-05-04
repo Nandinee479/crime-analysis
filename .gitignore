@@ -29,7 +29,7 @@ Thumbs.db
 .env.production.local
 
 # Database (uncomment if you want to ignore dev db)
-# crime_analysis.db
+crime_analysis.db
 
 # IDE
 .vscode/
@@ -40,3 +40,7 @@ Thumbs.db
 # Electron
 app/dist/
 electron-builder-effective-config.yaml
+
+crime_analysis.db-shm
+
+crime_analysis.db-wal

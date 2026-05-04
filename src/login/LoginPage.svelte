@@ -4,21 +4,36 @@
   let showRegister = false
   let role = 'admin'
   let username = ''
-  let password = ''
+  let adminPassword = ''
+  let userPassword = ''
   let fullName = ''
   let error = ''
   let success = ''
   let loading = false
 
-  async function handleLogin() {
+  async function handleAdminLogin() {
+    error = ''
+    if (!adminPassword.trim()) {
+      error = 'Password diun'
+      return
+    }
+    loading = true
+    const result = await login('admin', adminPassword)
+    loading = false
+    if (!result.success) {
+      error = result.error
+    }
+  }
+
+  async function handleUserLogin() {
     error = ''
     success = ''
-    if (!username.trim() || !password.trim()) {
+    if (!username.trim() || !userPassword.trim()) {
       error = 'Username ar password diun'
       return
     }
     loading = true
-    const result = await login(username, password)
+    const result = await login(username, userPassword)
     loading = false
     if (!result.success) {
       error = result.error
@@ -28,47 +43,48 @@
   async function handleRegister() {
     error = ''
     success = ''
-    if (!fullName.trim() || !username.trim() || !password.trim()) {
+    if (!fullName.trim() || !username.trim() || !userPassword.trim()) {
       error = 'Sob field fill korun'
       return
     }
-    if (password.length < 3) {
+    if (userPassword.length < 3) {
       error = 'Password minimum 3 characters hote hobe'
       return
     }
     loading = true
-    const result = await register({ username, password, fullName })
+    const result = await register({ username, password: userPassword, fullName })
     loading = false
     if (result.success) {
       success = 'Account create hoyeche! Ekhn login korun.'
       showRegister = false
       username = ''
-      password = ''
+      userPassword = ''
       fullName = ''
     } else {
       error = result.error
     }
   }
 
-  function fillDemo() {
-    username = 'admin'
-    password = 'admin123'
-    role = 'admin'
-    error = ''
-  }
-
   function switchToAdmin() {
     role = 'admin'
+    showRegister = false
     username = ''
-    password = ''
+    adminPassword = ''
+    userPassword = ''
+    fullName = ''
     error = ''
+    success = ''
   }
 
   function switchToUser() {
     role = 'user'
+    showRegister = false
     username = ''
-    password = ''
+    adminPassword = ''
+    userPassword = ''
+    fullName = ''
     error = ''
+    success = ''
   }
 </script>
 
@@ -79,20 +95,47 @@
       <h1>Crime Analysis System</h1>
     </div>
 
-    {#if !showRegister}
-      <!-- LOGIN VIEW -->
-      <div class="role-tabs">
-        <button type="button" class:active={role === 'admin'} on:click={switchToAdmin}>
-          <span class="tab-icon">👮</span>
-          Admin
-        </button>
-        <button type="button" class:active={role === 'user'} on:click={switchToUser}>
-          <span class="tab-icon">👤</span>
-          User
-        </button>
-      </div>
+    <div class="role-tabs">
+      <button type="button" class:active={role === 'admin'} on:click={switchToAdmin}>
+        <span class="tab-icon">👮</span>
+        Admin
+      </button>
+      <button type="button" class:active={role === 'user'} on:click={switchToUser}>
+        <span class="tab-icon">👤</span>
+        User
+      </button>
+    </div>
 
-      <form on:submit|preventDefault={handleLogin}>
+    {#if role === 'admin'}
+      <!-- ADMIN LOGIN - Password only -->
+      <form on:submit|preventDefault={handleAdminLogin}>
+        {#if error}
+          <div class="error-box">{error}</div>
+        {/if}
+
+        <div class="input-group">
+          <span class="input-icon">🔑</span>
+          <input
+            type="password"
+            class="login-input"
+            bind:value={adminPassword}
+            placeholder="Admin Password"
+          />
+        </div>
+
+        <button class="btn-admin-login" type="submit" disabled={loading}>
+          {#if loading}
+            <span class="loader"></span>
+            Verifying...
+          {:else}
+            Admin Login
+          {/if}
+        </button>
+      </form>
+
+    {:else if !showRegister}
+      <!-- USER LOGIN -->
+      <form on:submit|preventDefault={handleUserLogin}>
         {#if error}
           <div class="error-box">{error}</div>
         {/if}
@@ -116,7 +159,7 @@
           <input
             type="password"
             class="login-input"
-            bind:value={password}
+            bind:value={userPassword}
             placeholder="Password"
           />
         </div>
@@ -126,17 +169,10 @@
             <span class="loader"></span>
             Signing in...
           {:else}
-            {role === 'admin' ? 'Admin Login' : 'User Login'}
+            User Login
           {/if}
         </button>
       </form>
-
-      {#if role === 'admin'}
-        <div class="demo-box">
-          <span>Admin: <b>admin</b> / <b>admin123</b></span>
-          <button class="demo-btn" type="button" on:click={fillDemo}>Use Demo</button>
-        </div>
-      {/if}
 
       <div class="divider">
         <span>OR</span>
@@ -150,7 +186,7 @@
     {:else}
       <!-- REGISTER VIEW -->
       <div class="register-header">
-        <span class="back-icon" on:click={() => { showRegister = false; error = ''; success = '' }}>←</span>
+        <button class="back-btn" type="button" on:click={() => { showRegister = false; error = ''; success = '' }}>←</button>
         <h2>Create Account</h2>
       </div>
 
@@ -189,7 +225,7 @@
           <input
             type="password"
             class="login-input"
-            bind:value={password}
+            bind:value={userPassword}
             placeholder="Password (min 3 chars)"
           />
         </div>
@@ -234,10 +270,10 @@
     animation: slideUp .3s ease;
   }
   @keyframes slideUp { from { transform: translateY(20px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
-  .login-header { text-align: center; margin-bottom: 28px; }
+  .login-header { text-align: center; margin-bottom: 24px; }
   .logo-icon { font-size: 50px; margin-bottom: 6px; }
   .login-header h1 { font-size: 22px; font-weight: 700; color: #1A237E; margin: 0; }
-  .role-tabs { display: flex; gap: 10px; margin-bottom: 22px; }
+  .role-tabs { display: flex; gap: 10px; margin-bottom: 24px; }
   .role-tabs button {
     flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
     padding: 14px; border: 2px solid #E0E0E0; border-radius: 12px;
@@ -260,6 +296,14 @@
     font-size: 15px; outline: none; font-family: inherit; color: #333;
   }
   .login-input::placeholder { color: #999; }
+  .btn-admin-login {
+    width: 100%; padding: 16px; background: #1A237E; color: #fff;
+    border: none; border-radius: 12px; font-size: 16px; font-weight: 700;
+    cursor: pointer; margin-top: 6px; display: flex; align-items: center;
+    justify-content: center; gap: 8px; transition: all .2s; font-family: inherit;
+  }
+  .btn-admin-login:hover:not(:disabled) { background: #283593; box-shadow: 0 4px 16px rgba(26,35,126,.3); }
+  .btn-admin-login:disabled { opacity: .6; cursor: not-allowed; }
   .btn-login {
     width: 100%; padding: 14px; background: #1A237E; color: #fff;
     border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
@@ -270,15 +314,6 @@
   .btn-login:disabled { opacity: .6; cursor: not-allowed; }
   .loader { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg) } }
-  .demo-box {
-    margin-top: 16px; padding: 10px 14px; background: #F3F4F6; border-radius: 10px;
-    display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #666;
-  }
-  .demo-btn {
-    background: #3949AB; color: #fff; border: none; padding: 5px 12px;
-    border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; font-family: inherit;
-  }
-  .demo-btn:hover { background: #1A237E; }
   .error-box { background: #FFEBEE; color: #C62828; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; font-weight: 500; }
   .success-box { background: #E8F5E9; color: #2E7D32; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; font-weight: 500; }
   .divider { text-align: center; margin: 20px 0; position: relative; }
@@ -293,8 +328,12 @@
   }
   .btn-register:hover { background: #283593; box-shadow: 0 4px 16px rgba(26,35,126,.3); }
   .register-header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
-  .back-icon { font-size: 22px; cursor: pointer; color: #1A237E; padding: 4px; border-radius: 8px; transition: background .2s; }
-  .back-icon:hover { background: #EDE7F6; }
+  .back-btn {
+    background: none; border: none; font-size: 22px; cursor: pointer;
+    color: #1A237E; padding: 4px 8px; border-radius: 8px; transition: background .2s;
+    display: flex; align-items: center; font-family: inherit;
+  }
+  .back-btn:hover { background: #EDE7F6; }
   .register-header h2 { font-size: 18px; font-weight: 700; color: #1A237E; margin: 0; }
   .btn-register-action {
     width: 100%; padding: 14px; background: #2E7D32; color: #fff;
