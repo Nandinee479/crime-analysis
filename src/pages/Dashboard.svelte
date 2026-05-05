@@ -4,11 +4,46 @@
 
   let stats = null
   let loading = true
+  let loadError = ''
+  let autoRefresh = false
+  let refreshInterval
 
   onMount(async () => {
-    stats = await window.api.dashboard.getStats()
-    loading = false
+    try {
+      await loadStats()
+    } catch (err) {
+      loadError = err?.message || 'Failed to load dashboard data.'
+      console.error('Dashboard load failed:', err)
+    }
+    return () => { if (refreshInterval) clearInterval(refreshInterval) }
   })
+
+  async function loadStats() {
+    loading = true
+    loadError = ''
+    try {
+      if (!window.api?.dashboard?.getStats) {
+        throw new Error('Dashboard API is not available.')
+      }
+      stats = await window.api.dashboard.getStats()
+    } catch (err) {
+      loadError = err?.message || 'Failed to load dashboard data.'
+      console.error('Dashboard load failed:', err)
+      stats = null
+    } finally {
+      loading = false
+    }
+  }
+
+  function toggleAutoRefresh() {
+    autoRefresh = !autoRefresh
+    if (autoRefresh) {
+      refreshInterval = setInterval(loadStats, 30000)
+    } else {
+      clearInterval(refreshInterval)
+      refreshInterval = null
+    }
+  }
 
   function severityColor(s) {
     if (!s) return '#9C27B0'
@@ -31,6 +66,37 @@
   }
 
   const BAR_COLORS = ['#1A237E','#283593','#303F9F','#3949AB','#3F51B5']
+
+  function pieColors(i) {
+    const colors = ['#1A237E','#283593','#3F51B5','#5C6BC0','#7986CB','#9FA8DA']
+    return colors[i % colors.length]
+  }
+
+  function getPieData() {
+    if (!stats || !stats.crimesByType.length) return []
+    const total = stats.crimesByType.reduce((s, r) => s + r.count, 0)
+    let cumulative = 0
+    return stats.crimesByType.map((r, i) => {
+      const pct = (r.count / total) * 100
+      const startAngle = (cumulative / total) * 360
+      cumulative += r.count
+      const endAngle = (cumulative / total) * 360
+      return { ...r, pct, startAngle, endAngle, color: pieColors(i) }
+    })
+  }
+
+  function polarToCartesian(angle, radius) {
+    const rad = (angle - 90) * Math.PI / 180
+    return { x: 100 + radius * Math.cos(rad), y: 100 + radius * Math.sin(rad) }
+  }
+
+  function describeArc(startAngle, endAngle, radius) {
+    if (endAngle - startAngle < 0.1) return ''
+    const start = polarToCartesian(startAngle, radius)
+    const end = polarToCartesian(endAngle, radius)
+    const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0
+    return `M 100,100 L ${start.x},${start.y} A ${radius},${radius} 0 ${largeArcFlag},1 ${end.x},${end.y} Z`
+  }
 </script>
 
 <div class="page-header">
@@ -38,11 +104,24 @@
     <h2>Dashboard</h2>
     <p>Overview of crime analysis data</p>
   </div>
+  <div class="header-actions">
+    <button class="btn-refresh" on:click={loadStats} title="Refresh now">
+      ↻ Refresh
+    </button>
+    <button class="btn-autorefresh" class:active={autoRefresh} on:click={toggleAutoRefresh} title="Auto refresh every 30s">
+      ⟳ Auto
+    </button>
+  </div>
 </div>
 
 <div class="content-area">
   {#if loading}
     <p style="color:#888; padding:40px 0; text-align:center;">Loading statistics…</p>
+  {:else if loadError}
+    <div class="error-box" style="margin:40px auto; max-width:520px; padding:20px; background:#FFEBEE; color:#C62828; border-radius:12px; text-align:center;">
+      <p>{loadError}</p>
+      <button class="btn-refresh" on:click={loadStats} style="margin-top:16px;">Retry</button>
+    </div>
   {:else if stats}
 
     <!-- Stat cards -->
@@ -59,7 +138,56 @@
       {/each}
     </div>
 
-    <!-- Charts + recent crimes -->
+    <!-- Charts row -->
+    <div class="charts-grid" style="margin-bottom:20px;">
+
+      <!-- Pie Chart: Crimes by Type -->
+      <div class="card" style="padding:20px 24px;">
+        <h4 style="font-size:15px; color:var(--md-primary); margin-bottom:16px;">Crimes by Type (Pie)</h4>
+        {#if stats.crimesByType.length === 0}
+          <p style="color:#aaa; font-size:13px;">No data yet</p>
+        {:else}
+          <div class="pie-container">
+            <svg viewBox="0 0 200 200" class="pie-svg">
+              {#each getPieData() as slice}
+                <path d={describeArc(slice.startAngle, slice.endAngle, 80)} fill={slice.color}
+                  title={`${slice.Type_Name || 'Unknown'}: ${slice.count} (${slice.pct.toFixed(1)}%)`} />
+              {/each}
+            </svg>
+            <div class="pie-legend">
+              {#each getPieData() as slice}
+                <div class="legend-item">
+                  <span class="legend-dot" style="background:{slice.color}"></span>
+                  <span class="legend-label">{slice.Type_Name || 'Unknown'}</span>
+                  <span class="legend-pct">{slice.pct.toFixed(1)}%</span>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+      </div>
+
+      <!-- Monthly Trend Bar Chart -->
+      <div class="card" style="padding:20px 24px;">
+        <h4 style="font-size:15px; color:var(--md-primary); margin-bottom:16px;">Monthly Crime Trend</h4>
+        {#if !stats.monthlyTrend || stats.monthlyTrend.length === 0}
+          <p style="color:#aaa; font-size:13px;">No data yet</p>
+        {:else}
+          <div class="trend-chart">
+            {#each stats.monthlyTrend as row}
+              <div class="trend-bar-wrap">
+                <div class="trend-bar" style="height: {(row.count / maxCount(stats.monthlyTrend)) * 100}%; background:var(--md-primary);">
+                  <span class="trend-bar-label">{row.count}</span>
+                </div>
+                <div class="trend-month">{row.month}</div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </div>
+
+    <!-- Bar Charts: By Type & Severity -->
     <div class="charts-grid" style="margin-bottom:20px;">
 
       <!-- Crimes by type -->
@@ -151,3 +279,33 @@
 
   {/if}
 </div>
+
+<style>
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .btn-refresh, .btn-autorefresh {
+    padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: 1.5px solid #C4C7C5; background: #fff;
+    color: #555; transition: all .2s; font-family: inherit;
+  }
+  .btn-refresh:hover { border-color: var(--md-primary); color: var(--md-primary); }
+  .btn-autorefresh:hover { border-color: var(--md-primary); color: var(--md-primary); }
+  .btn-autorefresh.active { background: var(--md-primary); color: #fff; border-color: var(--md-primary); }
+  .pie-container { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .pie-svg { width: 160px; height: 160px; flex-shrink: 0; }
+  .pie-legend { flex: 1; min-width: 0; }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 13px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend-pct { font-weight: 600; color: #555; }
+  .trend-chart {
+    display: flex; align-items: flex-end; gap: 10px; height: 180px;
+    padding: 0 8px; border-bottom: 1px solid #E0E0E0;
+  }
+  .trend-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+  .trend-bar {
+    width: 100%; border-radius: 4px 4px 0 0; position: relative; min-height: 4px;
+    transition: height .4s ease;
+  }
+  .trend-bar-label { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 600; color: #555; }
+  .trend-month { font-size: 11px; color: #888; margin-top: 6px; text-align: center; writing-mode: horizontal-tb; }
+</style>

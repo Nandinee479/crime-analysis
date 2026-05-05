@@ -1,5 +1,5 @@
 <script>
-  import { authUser } from './stores/auth.js'
+  import { authUser, isAdmin } from './stores/auth.js'
   import { currentPage } from './stores/navigation.js'
   import Sidebar from './components/Sidebar.svelte'
   import Toast from './components/Toast.svelte'
@@ -11,6 +11,8 @@
   import Crime from './pages/Crime.svelte'
   import CrimeSuspect from './pages/CrimeSuspect.svelte'
   import Victim from './pages/Victim.svelte'
+  import CrimeAnalysis from './pages/CrimeAnalysis.svelte'
+  import CrimeSearch from './pages/CrimeSearch.svelte'
 </script>
 
 {#if $authUser}
@@ -19,18 +21,25 @@
     <main class="main-content">
       {#if $currentPage === 'dashboard'}
         <Dashboard />
-      {:else if $currentPage === 'crime-type'}
+      {:else if $currentPage === 'crime-analysis' && !$isAdmin}
+        <CrimeAnalysis />
+      {:else if $currentPage === 'crime-search' && !$isAdmin}
+        <CrimeSearch />
+      {:else if $currentPage === 'crime-type' && $isAdmin}
         <CrimeType />
-      {:else if $currentPage === 'location'}
+      {:else if $currentPage === 'location' && $isAdmin}
         <Location />
-      {:else if $currentPage === 'suspect'}
+      {:else if $currentPage === 'suspect' && $isAdmin}
         <Suspect />
-      {:else if $currentPage === 'crime'}
+      {:else if $currentPage === 'crime' && $isAdmin}
         <Crime />
-      {:else if $currentPage === 'crime-suspect'}
+      {:else if $currentPage === 'crime-suspect' && $isAdmin}
         <CrimeSuspect />
-      {:else if $currentPage === 'victim'}
+      {:else if $currentPage === 'victim' && $isAdmin}
         <Victim />
+      {:else}
+        <!-- Default to dashboard if invalid page or unauthorized access -->
+        <Dashboard />
       {/if}
     </main>
   </div>

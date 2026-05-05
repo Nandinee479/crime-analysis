@@ -1,12 +1,14 @@
 <script>
   import { currentPage } from '../stores/navigation.js'
-  import { logout, isAdmin } from '../stores/auth.js'
+  import { logout } from '../stores/auth.js'
 
   export let user
 
-  $: admin = $isAdmin
+  $: admin = user?.role === 'admin'
+  $: displayName = user?.name || user?.username || 'User'
+  $: displayInitial = displayName?.charAt(0).toUpperCase() || 'U'
 
-  const navItems = [
+  const adminNavItems = [
     { id: 'dashboard',     label: 'Dashboard',          icon: '📊', section: null },
     { id: 'crime-type',    label: 'Crime Types',         icon: '🏷️', section: 'Master Data' },
     { id: 'location',      label: 'Locations',           icon: '📍', section: null },
@@ -16,12 +18,25 @@
     { id: 'victim',        label: 'Victims',             icon: '👤', section: null },
   ]
 
+  const userNavItems = [
+    { id: 'dashboard',     label: 'Dashboard',          icon: '📊', section: null },
+    { id: 'crime-analysis', label: 'Crime Analysis',    icon: '📈', section: 'Analysis' },
+    { id: 'crime-search',  label: 'Crime Search',       icon: '🔍', section: null },
+  ]
+
+  $: navItems = admin ? adminNavItems : userNavItems
+
   let sections = []
-  let seen = new Set()
-  for (const item of navItems) {
-    if (item.section && !seen.has(item.section)) {
-      seen.add(item.section)
-      sections.push(item.section)
+  $: {
+    sections = []
+    const seen = new Set()
+    if (Array.isArray(navItems)) {
+      for (const item of navItems) {
+        if (item.section && !seen.has(item.section)) {
+          seen.add(item.section)
+          sections.push(item.section)
+        }
+      }
     }
   }
 
@@ -36,9 +51,9 @@
   </div>
 
   <div class="user-info">
-    <div class="user-avatar">{user.name.charAt(0)}</div>
+    <div class="user-avatar">{displayInitial}</div>
     <div class="user-details">
-      <span class="user-name">{user.name}</span>
+      <span class="user-name">{displayName}</span>
       <span class="user-role">{admin ? 'Administrator' : 'User'}</span>
     </div>
   </div>

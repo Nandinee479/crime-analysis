@@ -1,0 +1,12 @@
+{
+  "resources": [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5176"
+  ],
+  "delay": 1000,
+  "interval": 100,
+  "timeout": 30000,
+  "window": 1000
+}

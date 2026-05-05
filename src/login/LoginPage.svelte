@@ -18,10 +18,15 @@
       return
     }
     loading = true
-    const result = await login('admin', adminPassword)
-    loading = false
-    if (!result.success) {
-      error = result.error
+    try {
+      const result = await login('admin', adminPassword)
+      if (!result.success) {
+        error = result.error || 'Login failed'
+      }
+    } catch (err) {
+      error = err?.message || 'Unable to sign in. Please try again.'
+    } finally {
+      loading = false
     }
   }
 
@@ -33,10 +38,15 @@
       return
     }
     loading = true
-    const result = await login(username, userPassword)
-    loading = false
-    if (!result.success) {
-      error = result.error
+    try {
+      const result = await login(username, userPassword)
+      if (!result.success) {
+        error = result.error || 'Login failed'
+      }
+    } catch (err) {
+      error = err?.message || 'Unable to sign in. Please try again.'
+    } finally {
+      loading = false
     }
   }
 

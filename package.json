@@ -4,7 +4,7 @@
   "description": "Crime Analysis Desktop Application",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
+    "dev": "node dev.js",
     "build:renderer": "vite build",
     "build": "vite build && electron-builder",
     "postinstall": "electron-rebuild -f -w better-sqlite3"

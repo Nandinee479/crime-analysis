@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store'
+import { setDefaultPage } from './navigation.js'
 
 export const authUser = writable(null)
 export const isAdmin = writable(false)
@@ -10,13 +11,19 @@ export async function login(username, password) {
     }
     authUser.set({ id: 0, username: 'admin', role: 'admin', name: 'Administrator' })
     isAdmin.set(true)
+    setDefaultPage()
     return { success: true, user: { id: 0, username: 'admin', role: 'admin', name: 'Administrator' } }
   }
 
   const result = await window.api.auth.login({ username, password })
   if (result.success) {
-    authUser.set(result.user)
-    isAdmin.set(result.user.role === 'admin')
+    const user = {
+      ...result.user,
+      name: result.user.name || result.user.username || 'User'
+    }
+    authUser.set(user)
+    isAdmin.set(user.role === 'admin')
+    setDefaultPage()
   }
   return result
 }

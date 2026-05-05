@@ -15,17 +15,6 @@ function initDatabase() {
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
 
-  // Drop existing tables to reset auto-increment sequences
-  db.exec(`
-    DROP TABLE IF EXISTS crime_suspect;
-    DROP TABLE IF EXISTS victim;
-    DROP TABLE IF EXISTS crime;
-    DROP TABLE IF EXISTS crime_type;
-    DROP TABLE IF EXISTS location;
-    DROP TABLE IF EXISTS suspect;
-    DROP TABLE IF EXISTS user_account;
-  `)
-
   db.exec(`
     CREATE TABLE IF NOT EXISTS user_account (
       ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,7 +89,8 @@ function createWindow() {
   })
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173')
+    const devUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173'
+    mainWindow.loadURL(devUrl)
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
