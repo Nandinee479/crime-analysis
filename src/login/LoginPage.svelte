@@ -14,7 +14,7 @@
   async function handleAdminLogin() {
     error = ''
     if (!adminPassword.trim()) {
-      error = 'Password diun'
+      error = 'Please enter the admin password'
       return
     }
     loading = true
@@ -29,7 +29,7 @@
     error = ''
     success = ''
     if (!username.trim() || !userPassword.trim()) {
-      error = 'Username ar password diun'
+      error = 'Please enter both username and password'
       return
     }
     loading = true
@@ -44,18 +44,18 @@
     error = ''
     success = ''
     if (!fullName.trim() || !username.trim() || !userPassword.trim()) {
-      error = 'Sob field fill korun'
+      error = 'Please enter full name, username and password'
       return
     }
     if (userPassword.length < 3) {
-      error = 'Password minimum 3 characters hote hobe'
+      error = 'Password must be at least 3 characters long'
       return
     }
     loading = true
     const result = await register({ username, password: userPassword, fullName })
     loading = false
     if (result.success) {
-      success = 'Account create hoyeche! Ekhn login korun.'
+      success = 'Account Create Successfully! Please login now.'
       showRegister = false
       username = ''
       userPassword = ''
