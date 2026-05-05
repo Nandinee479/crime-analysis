@@ -55,7 +55,10 @@
   async function confirmDelete() {
     try {
       await window.api.location.delete(deleteId)
-      showConfirm = false; showToast('Location deleted', 'success'); await load()
+      records = records.filter(r => r.Location_ID !== deleteId)
+      applyFilter()
+      showConfirm = false
+      showToast('Location deleted', 'success')
     } catch (error) {
       showToast(error.message, 'error')
     }
@@ -89,9 +92,9 @@
             <tr><th>#</th><th>Location Name</th><th>City</th><th>Area Type</th><th style="width:100px;">Actions</th></tr>
           </thead>
           <tbody>
-            {#each filtered as r}
+            {#each filtered as r, index}
               <tr>
-                <td>{r.Location_ID}</td>
+                <td>{index + 1}</td>
                 <td><strong>{r.Location_Name}</strong></td>
                 <td>{r.City || '—'}</td>
                 <td>

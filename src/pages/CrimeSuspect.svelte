@@ -64,7 +64,10 @@
   async function confirmDelete() {
     try {
       await window.api.crimeSuspect.delete(deleteId)
-      showConfirm = false; showToast('Link removed', 'success'); await load()
+      records = records.filter(r => r.ID !== deleteId)
+      applyFilter()
+      showConfirm = false
+      showToast('Link removed', 'success')
     } catch (error) {
       showToast(error.message, 'error')
     }
@@ -102,9 +105,9 @@
             <tr><th>#</th><th>Crime ID</th><th>Crime Type</th><th>Crime Date</th><th>Suspect</th><th style="width:100px;">Actions</th></tr>
           </thead>
           <tbody>
-            {#each filtered as r}
+            {#each filtered as r, index}
               <tr>
-                <td>{r.ID}</td>
+                <td>{index + 1}</td>
                 <td><span class="badge badge-default">#{ r.Crime_ID}</span></td>
                 <td>{r.Crime_Type || '—'}</td>
                 <td>{r.Crime_Date || '—'}</td>

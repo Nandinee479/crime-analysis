@@ -65,9 +65,11 @@
   async function confirmDelete() {
     try {
       await window.api.crimeType.delete(deleteId)
+      // Remove from local array immediately for instant UI update
+      records = records.filter(r => r.Type_ID !== deleteId)
+      applyFilter()
       showConfirm = false
       showToast('Crime type deleted', 'success')
-      await load()
     } catch (error) {
       showToast(error.message, 'error')
     }
@@ -101,9 +103,9 @@
             <tr><th>#</th><th>Type Name</th><th>Description</th><th style="width:100px;">Actions</th></tr>
           </thead>
           <tbody>
-            {#each filtered as r}
+            {#each filtered as r, index}
               <tr>
-                <td>{r.Type_ID}</td>
+                <td>{index + 1}</td>
                 <td><strong>{r.Type_Name}</strong></td>
                 <td style="color:#555;">{r.Description || '—'}</td>
                 <td>

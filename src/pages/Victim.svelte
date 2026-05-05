@@ -74,7 +74,10 @@
   async function confirmDelete() {
     try {
       await window.api.victim.delete(deleteId)
-      showConfirm = false; showToast('Victim record deleted', 'success'); await load()
+      records = records.filter(r => r.Victim_ID !== deleteId)
+      applyFilter()
+      showConfirm = false
+      showToast('Victim record deleted', 'success')
     } catch (error) {
       showToast(error.message, 'error')
     }
@@ -112,9 +115,9 @@
             <tr><th>#</th><th>Name</th><th>Age</th><th>Gender</th><th>Related Crime</th><th>Crime Date</th><th style="width:100px;">Actions</th></tr>
           </thead>
           <tbody>
-            {#each filtered as r}
+            {#each filtered as r, index}
               <tr>
-                <td>{r.Victim_ID}</td>
+                <td>{index + 1}</td>
                 <td><strong>{r.Victim_Name}</strong></td>
                 <td>{r.Age ?? '—'}</td>
                 <td>
