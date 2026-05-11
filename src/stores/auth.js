@@ -5,14 +5,14 @@ export const authUser = writable(null)
 export const isAdmin = writable(false)
 
 export async function login(username, password) {
-  if (username === 'admin') {
+  if (username === 'admin123@gmail.com') {
     if (password !== 'admin123') {
       return { success: false, error: 'Wrong admin password' }
     }
-    authUser.set({ id: 0, username: 'admin', role: 'admin', name: 'Administrator' })
+    authUser.set({ id: 0, username: 'admin123@gmail.com', role: 'admin', name: 'Administrator' })
     isAdmin.set(true)
     setDefaultPage()
-    return { success: true, user: { id: 0, username: 'admin', role: 'admin', name: 'Administrator' } }
+    return { success: true, user: { id: 0, username: 'admin123@gmail.com', role: 'admin', name: 'Administrator' } }
   }
 
   const result = await window.api.auth.login({ username, password })

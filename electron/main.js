@@ -66,10 +66,28 @@ function initDatabase() {
     );
   `)
 
-  const adminExists = db.prepare('SELECT COUNT(*) AS n FROM user_account WHERE Username = ?').get('admin').n
+  const adminExists = db.prepare('SELECT COUNT(*) AS n FROM user_account WHERE Username = ?').get('admin123@gmail.com').n
   if (!adminExists) {
-    db.prepare('INSERT INTO user_account (Username, Password, Role, Full_Name) VALUES (?, ?, ?, ?)').run('admin', 'admin123', 'admin', 'Administrator')
+    db.prepare('INSERT INTO user_account (Username, Password, Role, Full_Name) VALUES (?, ?, ?, ?)').run('admin123@gmail.com', 'admin123', 'admin', 'Administrator')
   }
+
+  // ── Crime Progress Migration ──────────────────────────────
+  const crimeCols = db.pragma('table_info(crime)').map(c => c.name)
+  if (!crimeCols.includes('Progress')) {
+    db.exec("ALTER TABLE crime ADD COLUMN Progress TEXT DEFAULT 'Ongoing'")
+  }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS crime_progress_log (
+      Log_ID     INTEGER PRIMARY KEY AUTOINCREMENT,
+      Crime_ID   INTEGER NOT NULL,
+      Status     TEXT NOT NULL,
+      Note       TEXT,
+      Updated_By INTEGER,
+      Updated_At TEXT,
+      FOREIGN KEY (Crime_ID)   REFERENCES crime(Crime_ID),
+      FOREIGN KEY (Updated_By) REFERENCES user_account(ID)
+    )
+  `)
 }
 
 function createWindow() {
@@ -301,26 +319,189 @@ ipcMain.handle('auth:register', handleDbOperation(({ username, password, fullNam
   return { success: true }
 }))
 
+// ── Crime Progress ─────────────────────────────────────────
+ipcMain.handle('crime-progress:getAll', handleDbOperation(() =>
+  db.prepare(`
+    SELECT
+      c.Crime_ID,
+      ct.Type_Name,
+      c.Severity,
+      c.Crime_Date,
+      l.Location_Name,
+      l.City,
+      c.Progress,
+      (
+        SELECT GROUP_CONCAT(s.Suspect_Name, ', ')
+        FROM crime_suspect cs
+        JOIN suspect s ON s.Suspect_ID = cs.Suspect_ID
+        WHERE cs.Crime_ID = c.Crime_ID
+      ) AS Suspects
+    FROM crime c
+    LEFT JOIN crime_type ct ON ct.Type_ID = c.Type_ID
+    LEFT JOIN location   l  ON l.Location_ID = c.Location_ID
+    ORDER BY c.Crime_Date DESC
+  `).all()
+))
+
+ipcMain.handle('crime-progress:getLog', handleDbOperation((crimeId) =>
+  db.prepare(`
+    SELECT
+      pl.Log_ID,
+      pl.Status,
+      pl.Note,
+      pl.Updated_At,
+      ua.Full_Name AS Updated_By
+    FROM crime_progress_log pl
+    LEFT JOIN user_account ua ON ua.ID = pl.Updated_By
+    WHERE pl.Crime_ID = ?
+    ORDER BY pl.Log_ID DESC
+  `).all(crimeId)
+))
+
+ipcMain.handle('crime-progress:update', handleDbOperation((d) => {
+  const validStatuses = ['Ongoing', 'Suspect Caught', 'Case Closed', 'Under Investigation']
+  if (!validStatuses.includes(d.status)) throw new Error('Invalid status')
+  const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
+  db.prepare('UPDATE crime SET Progress = ? WHERE Crime_ID = ?').run(d.status, d.crimeId)
+  db.prepare(`
+    INSERT INTO crime_progress_log (Crime_ID, Status, Note, Updated_By, Updated_At)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(d.crimeId, d.status, d.note || null, d.updatedBy || null, now)
+  return { success: true }
+}))
+
+// ── Crime Risk Search ─────────────────────────────────────
+ipcMain.handle('crime-risk:search', handleDbOperation((locationName) => {
+  if (!locationName || locationName.trim() === '') {
+    return { locations: [], crimes: [], risk: null }
+  }
+  const q = `%${locationName.trim()}%`
+  const locations = db.prepare(`
+    SELECT * FROM location WHERE Location_Name LIKE ? OR City LIKE ?
+    ORDER BY Location_Name LIMIT 10
+  `).all(q, q)
+
+  if (locations.length === 0) {
+    return { locations: [], crimes: [], risk: null }
+  }
+
+  const ids = locations.map(l => l.Location_ID)
+  const placeholders = ids.map(() => '?').join(',')
+  const crimes = db.prepare(`
+    SELECT c.Crime_ID, c.Crime_Date, c.Severity, ct.Type_Name, l.Location_Name, l.City
+    FROM crime c
+    LEFT JOIN crime_type ct ON c.Type_ID = ct.Type_ID
+    LEFT JOIN location l ON c.Location_ID = l.Location_ID
+    WHERE c.Location_ID IN (${placeholders})
+    ORDER BY c.Crime_Date DESC
+  `).all(...ids)
+
+  // Calculate risk
+  const total = crimes.length
+  const now = new Date()
+  const threeMonthsAgo = new Date(now)
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+  const sixMonthsAgo = new Date(now)
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+
+  const recent3 = crimes.filter(c => c.Crime_Date && new Date(c.Crime_Date) >= threeMonthsAgo).length
+  const prev3 = crimes.filter(c => c.Crime_Date && new Date(c.Crime_Date) >= sixMonthsAgo && new Date(c.Crime_Date) < threeMonthsAgo).length
+
+  const ratio = prev3 > 0 ? recent3 / prev3 : (recent3 > 0 ? 2 : 1)
+  let risk, riskColor
+  if (ratio > 1.3 || total >= 5) {
+    risk = 'High Risk'
+    riskColor = '#C62828'
+  } else if (ratio > 0.7 || total >= 2) {
+    risk = 'Medium Risk'
+    riskColor = '#E65100'
+  } else {
+    risk = 'Low Risk'
+    riskColor = '#2E7D32'
+  }
+
+  return {
+    locations,
+    crimes,
+    risk: { level: risk, color: riskColor, total, recent3, prev3, trend: ratio > 1 ? 'rising' : ratio < 1 ? 'falling' : 'stable' }
+  }
+}))
+
+// ── Heatmap ────────────────────────────────────────────────
+ipcMain.handle('heatmap:getData', handleDbOperation(() =>
+  db.prepare(`
+    SELECT l.Location_ID, l.Location_Name, l.City, l.Area_Type,
+           COALESCE(c.crime_count, 0) AS crime_count
+    FROM location l
+    LEFT JOIN (SELECT Location_ID, COUNT(*) AS crime_count FROM crime GROUP BY Location_ID) c
+      ON l.Location_ID = c.Location_ID
+    ORDER BY crime_count DESC
+  `).all()
+))
+
 // ── Dashboard ──────────────────────────────────────────────
-ipcMain.handle('dashboard:getStats', handleDbOperation(() => ({
-  totalCrimes:    db.prepare('SELECT COUNT(*) AS n FROM crime').get().n,
-  totalSuspects:  db.prepare('SELECT COUNT(*) AS n FROM suspect').get().n,
-  totalVictims:   db.prepare('SELECT COUNT(*) AS n FROM victim').get().n,
-  totalLocations: db.prepare('SELECT COUNT(*) AS n FROM location').get().n,
-  recentCrimes: db.prepare(`
+ipcMain.handle('dashboard:getStats', handleDbOperation(() => {
+  const totalCrimes    = db.prepare('SELECT COUNT(*) AS n FROM crime').get().n
+  const totalSuspects  = db.prepare('SELECT COUNT(*) AS n FROM suspect').get().n
+  const totalVictims   = db.prepare('SELECT COUNT(*) AS n FROM victim').get().n
+  const totalLocations = db.prepare('SELECT COUNT(*) AS n FROM location').get().n
+
+  const recentCrimes = db.prepare(`
     SELECT c.Crime_ID, c.Crime_Date, c.Severity, ct.Type_Name, l.Location_Name
     FROM crime c
     LEFT JOIN crime_type ct ON c.Type_ID = ct.Type_ID
     LEFT JOIN location l ON c.Location_ID = l.Location_ID
     ORDER BY c.Crime_ID DESC LIMIT 5
-  `).all(),
-  crimesByType: db.prepare(`
+  `).all()
+
+  const crimesByType = db.prepare(`
     SELECT ct.Type_Name, COUNT(*) AS count
     FROM crime c LEFT JOIN crime_type ct ON c.Type_ID = ct.Type_ID
     GROUP BY c.Type_ID ORDER BY count DESC
-  `).all(),
-  crimesBySeverity: db.prepare(`
+  `).all()
+
+  const crimesBySeverity = db.prepare(`
     SELECT Severity, COUNT(*) AS count FROM crime
     WHERE Severity IS NOT NULL GROUP BY Severity ORDER BY count DESC
   `).all()
-})))
+
+  const monthlyTrend = db.prepare(`
+    SELECT strftime('%Y-%m', Crime_Date) AS month, COUNT(*) AS count
+    FROM crime WHERE Crime_Date IS NOT NULL
+    GROUP BY month ORDER BY month DESC LIMIT 6
+  `).all().reverse()
+
+  // prediction: linear regression on monthly counts
+  const monthlyAll = db.prepare(`
+    SELECT strftime('%Y-%m', Crime_Date) AS month, COUNT(*) AS count
+    FROM crime WHERE Crime_Date IS NOT NULL
+    GROUP BY month ORDER BY month
+  `).all()
+  let prediction = null
+  if (monthlyAll.length >= 2) {
+    const n = monthlyAll.length
+    const indices = monthlyAll.map((_, i) => i)
+    const xMean = (n - 1) / 2
+    const yMean = monthlyAll.reduce((s, r) => s + r.count, 0) / n
+    let num = 0, den = 0
+    for (let i = 0; i < n; i++) {
+      const xDiff = i - xMean
+      const yDiff = monthlyAll[i].count - yMean
+      num += xDiff * yDiff
+      den += xDiff * xDiff
+    }
+    const slope = den !== 0 ? num / den : 0
+    const intercept = yMean - slope * xMean
+    const nextCount = Math.round(slope * n + intercept)
+    const trend = slope > 0.5 ? 'rising' : slope < -0.5 ? 'falling' : 'stable'
+    const nextMonth = new Date()
+    nextMonth.setMonth(nextMonth.getMonth() + 1)
+    const nextLabel = nextMonth.toISOString().substring(0, 7)
+    prediction = { nextCount: Math.max(0, nextCount), trend, nextLabel, slope }
+  }
+
+  return {
+    totalCrimes, totalSuspects, totalVictims, totalLocations,
+    recentCrimes, crimesByType, crimesBySeverity, monthlyTrend, prediction
+  }
+}))

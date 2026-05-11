@@ -10,18 +10,23 @@
 
   const adminNavItems = [
     { id: 'dashboard',     label: 'Dashboard',          icon: '📊', section: null },
+    { id: 'heatmap',       label: 'Crime Heatmap',      icon: '🗺️', section: null },
     { id: 'crime-type',    label: 'Crime Types',         icon: '🏷️', section: 'Master Data' },
     { id: 'location',      label: 'Locations',           icon: '📍', section: null },
     { id: 'suspect',       label: 'Suspects',            icon: '🔍', section: null },
-    { id: 'crime',         label: 'Crimes',              icon: '🚔', section: 'Records' },
-    { id: 'crime-suspect', label: 'Crime ↔ Suspects',   icon: '🔗', section: null },
-    { id: 'victim',        label: 'Victims',             icon: '👤', section: null },
+    { id: 'crime',          label: 'Crimes',              icon: '🚔', section: 'Records' },
+    { id: 'crime-suspect',  label: 'Crime ↔ Suspects',   icon: '🔗', section: null },
+    { id: 'victim',         label: 'Victims',             icon: '👤', section: null },
+    { id: 'crime-progress', label: 'Crime Progress',      icon: '🔄', section: 'Progress' },
   ]
 
   const userNavItems = [
-    { id: 'dashboard',     label: 'Dashboard',          icon: '📊', section: null },
-    { id: 'crime-analysis', label: 'Crime Analysis',    icon: '📈', section: 'Analysis' },
-    { id: 'crime-search',  label: 'Crime Search',       icon: '🔍', section: null },
+    { id: 'dashboard',      label: 'Dashboard',          icon: '📊', section: null },
+    { id: 'crime-risk',     label: 'Area Crime Risk',    icon: '⚠️', section: null },
+    { id: 'heatmap',        label: 'Crime Heatmap',      icon: '🗺️', section: null },
+    { id: 'crime-analysis', label: 'Crime Analysis',     icon: '📈', section: 'Analysis' },
+    { id: 'crime-search',   label: 'Crime Search',       icon: '🔍', section: null },
+    { id: 'crime-progress', label: 'Crime Progress',     icon: '🔄', section: null },
   ]
 
   $: navItems = admin ? adminNavItems : userNavItems

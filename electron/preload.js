@@ -20,5 +20,16 @@ contextBridge.exposeInMainWorld('api', {
   },
   dashboard: {
     getStats: () => ipcRenderer.invoke('dashboard:getStats')
+  },
+  heatmap: {
+    getData: () => ipcRenderer.invoke('heatmap:getData')
+  },
+  crimeRisk: {
+    search: (q) => ipcRenderer.invoke('crime-risk:search', q)
+  },
+  crimeProgress: {
+    getAll:  ()  => ipcRenderer.invoke('crime-progress:getAll'),
+    getLog:  (id) => ipcRenderer.invoke('crime-progress:getLog', id),
+    update:  (d)  => ipcRenderer.invoke('crime-progress:update', d)
   }
 })

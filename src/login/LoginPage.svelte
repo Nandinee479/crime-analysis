@@ -4,6 +4,7 @@
   let showRegister = false
   let role = 'admin'
   let username = ''
+  let adminEmail = ''
   let adminPassword = ''
   let userPassword = ''
   let fullName = ''
@@ -13,13 +14,17 @@
 
   async function handleAdminLogin() {
     error = ''
+    if (!adminEmail.trim()) {
+      error = 'Please enter the admin email'
+      return
+    }
     if (!adminPassword.trim()) {
       error = 'Please enter the admin password'
       return
     }
     loading = true
     try {
-      const result = await login('admin', adminPassword)
+      const result = await login(adminEmail, adminPassword)
       if (!result.success) {
         error = result.error || 'Login failed'
       }
@@ -79,6 +84,7 @@
     role = 'admin'
     showRegister = false
     username = ''
+    adminEmail = ''
     adminPassword = ''
     userPassword = ''
     fullName = ''
@@ -122,6 +128,17 @@
         {#if error}
           <div class="error-box">{error}</div>
         {/if}
+
+        <div class="input-group">
+          <span class="input-icon">📧</span>
+          <input
+            type="email"
+            class="login-input"
+            bind:value={adminEmail}
+            placeholder="Admin Email"
+            autocomplete="off"
+          />
+        </div>
 
         <div class="input-group">
           <span class="input-icon">🔑</span>

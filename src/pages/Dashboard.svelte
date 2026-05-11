@@ -1,5 +1,6 @@
 <script>
   import { currentPage } from '../stores/navigation.js'
+  import { isAdmin } from '../stores/auth.js'
   import { onMount } from 'svelte'
 
   let stats = null
@@ -137,6 +138,26 @@
         </button>
       {/each}
     </div>
+
+    <!-- Prediction Card — only for users -->
+    {#if !$isAdmin && stats.prediction}
+      <div class="prediction-card">
+        <div class="prediction-icon">🔮</div>
+        <div class="prediction-body">
+          <div class="prediction-label">Predicted Crimes for <strong>{stats.prediction.nextLabel}</strong></div>
+          <div class="prediction-count">{stats.prediction.nextCount}</div>
+          <div class="prediction-trend">
+            {#if stats.prediction.trend === 'rising'}
+              <span class="trend-up">📈 Rising</span>
+            {:else if stats.prediction.trend === 'falling'}
+              <span class="trend-down">📉 Falling</span>
+            {:else}
+              <span class="trend-stable">➡️ Stable</span>
+            {/if}
+          </div>
+        </div>
+      </div>
+    {/if}
 
     <!-- Charts row -->
     <div class="charts-grid" style="margin-bottom:20px;">
@@ -308,4 +329,19 @@
   }
   .trend-bar-label { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 600; color: #555; }
   .trend-month { font-size: 11px; color: #888; margin-top: 6px; text-align: center; writing-mode: horizontal-tb; }
+  .prediction-card {
+    display: flex; align-items: center; gap: 20px;
+    background: linear-gradient(135deg, #EDE7F6, #E8EAF6);
+    border: 2px solid #7986CB; border-radius: 14px;
+    padding: 20px 24px; margin-bottom: 20px;
+    animation: slideUp .3s ease;
+  }
+  .prediction-icon { font-size: 40px; }
+  .prediction-body { flex: 1; }
+  .prediction-label { font-size: 14px; color: #555; margin-bottom: 4px; }
+  .prediction-count { font-size: 42px; font-weight: 800; color: #1A237E; line-height: 1; }
+  .prediction-trend { margin-top: 6px; font-size: 14px; font-weight: 600; }
+  .trend-up { color: #C62828; }
+  .trend-down { color: #2E7D32; }
+  .trend-stable { color: #E65100; }
 </style>
