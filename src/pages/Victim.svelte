@@ -145,25 +145,25 @@
 <Modal title={editing ? 'Edit Victim' : 'Add Victim'} bind:open={showModal} on:close={() => showModal = false}>
   <svelte:fragment slot="body">
     <div class="form-group">
-      <label class="form-label">Full Name *</label>
-      <input class="form-control" bind:value={form.Victim_Name} placeholder="Victim full name" />
+      <label class="form-label" for="victim-name">Full Name *</label>
+      <input id="victim-name" class="form-control" bind:value={form.Victim_Name} placeholder="Victim full name" />
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Age</label>
-        <input class="form-control" type="number" min="0" max="120" bind:value={form.Age} placeholder="Age" />
+        <label class="form-label" for="victim-age">Age</label>
+        <input id="victim-age" class="form-control" type="number" min="0" max="120" bind:value={form.Age} placeholder="Age" />
       </div>
       <div class="form-group">
-        <label class="form-label">Gender</label>
-        <select class="form-control" bind:value={form.Gender}>
+        <label class="form-label" for="victim-gender">Gender</label>
+        <select id="victim-gender" class="form-control" bind:value={form.Gender}>
           <option value="">— Select —</option>
           <option>Male</option><option>Female</option><option>Other</option>
         </select>
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Related Crime</label>
-      <select class="form-control" bind:value={form.Crime_ID}>
+      <label class="form-label" for="victim-crime">Related Crime</label>
+      <select id="victim-crime" class="form-control" bind:value={form.Crime_ID}>
         <option value="">— Select Crime —</option>
         {#each crimes as c}
           <option value={c.Crime_ID}>{crimeLabel(c)}</option>
