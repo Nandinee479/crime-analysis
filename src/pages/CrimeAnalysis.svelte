@@ -26,7 +26,8 @@
 </script>
 
 <div class="page-header">
-  <div><h2>Crime Analysis Dashboard</h2><p>View crime statistics and trends</p></div>
+  <div><h2>Crime Analysis Dashboard</h2>
+    <p>View crime statistics and trends</p></div>
 </div>
 
 <div class="content-area">
